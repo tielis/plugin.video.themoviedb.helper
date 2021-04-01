@@ -7,6 +7,7 @@ provider-name="jurialmunkey">
   <import addon="xbmc.python" version="3.0.0"/>
   <import addon="script.module.requests" version="2.9.1"/>
   <import addon="script.module.pil" version="1.1.7"/>
+  <import addon="script.module.web-pdb" version="1.5.6"/>
 </requires>
 <extension point="xbmc.python.pluginsource" library="plugin.py">
   <provides>video</provides>

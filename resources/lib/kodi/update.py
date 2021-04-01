@@ -108,9 +108,19 @@ def create_playlist(items, dbtype, user_slug, list_slug):
     fcontent = [u'<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>']
     fcontent.append(u'<smartplaylist type="{}">'.format(dbtype))
     fcontent.append(u'    <name>{} by {} ({})</name>'.format(list_slug, user_slug, dbtype))
-    fcontent.append(u'    <match>any</match>')
-    for i in items:
-        fcontent.append(u'    <rule field="{}" operator="is"><value>{}</value></rule>'.format(i[0], i[1]))
+    
+    if ADDON.getSettingBool('library_autoupdate') and ADDON.getSettingBool('trakt_list_folders'):
+        if dbtype == 'tvshows': BASEDIR = BASEDIR_TV
+        else: BASEDIR = BASEDIR_MOVIE
+        fcontent.append(u'    <match>all</match>')
+        fcontent.append(u'    <rule field="path" operator="contains">')
+        fcontent.append(u'        <value>{}Trakt list - {} by {} ({})/</value>'.format(BASEDIR, list_slug, user_slug, dbtype))
+        fcontent.append(u'    </rule>')
+    else:
+        fcontent.append(u'    <match>any</match>')
+        for i in items:
+            fcontent.append(u'    <rule field="{}" operator="is"><value>{}</value></rule>'.format(i[0], i[1]))
+    fcontent.append(u'<order direction="descending">rating</order>')
     fcontent.append(u'</smartplaylist>')
     create_file(u'\n'.join(fcontent), filename, basedir=filepath, file_ext='xsp', clean_url=False)
 

@@ -12,7 +12,7 @@ from resources.lib.addon.timedate import is_unaired_timestamp, get_current_date_
 from resources.lib.tmdb.api import TMDb
 
 
-def add_to_library(info, busy_spinner=True, library_adder=None, finished=True, **kwargs):
+def add_to_library(info, busy_spinner=True, library_adder=None, finished=True, **kwargs):   
     if not info:
         return
     if not library_adder:
@@ -71,8 +71,12 @@ class LibraryAdder():
         nfos = []
         nfos_append = nfos.append  # For speed since we can't do a list comp easily here
         for f in xbmcvfs.listdir(BASEDIR_TV)[0]:
-            tmdb_id = get_tmdb_id_nfo(BASEDIR_TV, f)
-            nfos_append({'tmdb_id': tmdb_id, 'folder': f}) if tmdb_id else None
+            if 'Trakt list' in f:
+                for f1 in xbmcvfs.listdir(BASEDIR_TV + f)[0]:
+                    tmdb_id = get_tmdb_id_nfo(BASEDIR_TV + f + '\\', f1)                    
+            else:
+                tmdb_id = get_tmdb_id_nfo(BASEDIR_TV, f)
+                nfos_append({'tmdb_id': tmdb_id, 'folder': f}) if tmdb_id else None
         return nfos
 
     def _legacy_conversion(self, folder, tmdb_id):
@@ -128,7 +132,7 @@ class LibraryAdder():
 
         for x, i in enumerate(request):
             self._update(x, i_total, message=u'Updating {}...'.format(i.get(i.get('type'), {}).get('title')))
-            playlist_rule = self._add_userlist_item(i, force=force)
+            playlist_rule = self._add_userlist_item(i, force=force, user_slug=user_slug, list_slug=list_slug)
             if not playlist_rule:
                 continue
             i_added[i.get('type')].append(playlist_rule)
@@ -140,7 +144,7 @@ class LibraryAdder():
             self._update(2, 3, message=ADDON.getLocalizedString(32350))
             create_playlist(i_added['show'], 'tvshows', user_slug, list_slug)
 
-    def _add_userlist_item(self, i, force=False):
+    def _add_userlist_item(self, i, force=False, user_slug=None, list_slug=None):        
         i_type = i.get('type')
         if i_type == 'movie':
             func = self.add_movie
@@ -158,12 +162,17 @@ class LibraryAdder():
                 'skipped item in Trakt user list with missing TMDb ID')
             return
 
-        return func(tmdb_id, force=force)
+        return func(tmdb_id, force=force, user_slug=user_slug, list_slug=list_slug)
 
-    def add_movie(self, tmdb_id=None, **kwargs):
+    def add_movie(self, tmdb_id=None, **kwargs):        
         if not tmdb_id:
             return
-
+        list_name = ""
+        if ADDON.getSettingBool('library_autoupdate') and ADDON.getSettingBool('trakt_list_folders') and kwargs.get('list_slug'):
+            list_slug = kwargs.get('list_slug')
+            user_slug=  kwargs.get('user_slug')
+            folder_name = u'Trakt list - {} by {} (movies)/'.format(list_slug, user_slug)  
+            
         # Get movie details
         details = TMDb().get_request_sc('movie', tmdb_id, append_to_response='external_ids')
         if not details or not details.get('title'):
@@ -174,8 +183,9 @@ class LibraryAdder():
         # Only add strm if not in library
         file = self.kodi_db_movies.get_info(info='file', imdb_id=imdb_id, tmdb_id=tmdb_id)
         if not file:
-            file = create_file(STRM_MOVIE.format(tmdb_id), name, name, basedir=BASEDIR_MOVIE)
-            create_nfo('movie', tmdb_id, name, basedir=BASEDIR_MOVIE)
+            
+            file = create_file(STRM_MOVIE.format(tmdb_id), name, name, basedir=BASEDIR_MOVIE + folder_name)
+            create_nfo('movie', tmdb_id, name, basedir=BASEDIR_MOVIE + folder_name)
             self._log._add('movie', tmdb_id, 'added strm file', path=file)
         else:
             self._log._add('movie', tmdb_id, 'item in library', path=file)
@@ -183,20 +193,27 @@ class LibraryAdder():
         # Return our playlist rule
         return ('filename', file.replace('\\', '/').split('/')[-1])
 
-    def add_tvshow(self, tmdb_id=None, force=False, **kwargs):
+    def add_tvshow(self, tmdb_id=None, force=False, **kwargs):        
+        folder_name = ""
+        if ADDON.getSettingBool('library_autoupdate') and ADDON.getSettingBool('trakt_list_folders') and kwargs.get('list_slug'):
+            list_slug = kwargs.get('list_slug')
+            user_slug=  kwargs.get('user_slug')
+            folder_name = u'Trakt list - {} by {} (tvshows)/'.format(list_slug, user_slug)
         self.tv = _TVShow(tmdb_id, force)
-
-        # Return playlist rule if we don't need to check show this time
-        if self._log._add('tv', tmdb_id, self.tv._cache.get_next_check()):
-            return ('title', self.tv._cache.cache_info.get('name'))
-
+        
+        
         if not self.tv.get_details():
             return  # Skip if no details found on TMDb
-        if not self.tv.get_name():
+        if not self.tv.get_name(folder_name=folder_name):
             return  # Skip if we don't have a folder name for some reason
+       
+        # Return playlist rule if we don't need to check show this time
+        if self._log._add('tv', tmdb_id, self.tv._cache.get_next_check()):
+            for f in xbmcvfs.listdir(BASEDIR_TV+folder_name)[0]:
+                if self.tv.name in f: return ('title', self.tv._cache.cache_info.get('name'))
 
         self.tv.get_dbid()
-        self.tv.make_nfo()
+        self.tv.make_nfo(folder_name)
         self.tv.set_next()
 
         # Add seasons
@@ -204,7 +221,7 @@ class LibraryAdder():
             self._update(x, self.tv.s_total, message=u'{} {} - {} {}...'.format(
                 ADDON.getLocalizedString(32167), self.tv.details.get('name'),
                 xbmc.getLocalizedString(20373), season.get('season_number', 0)))  # Update our progress dialog
-            self._add_season(season)
+            self._add_season(season, folder_name=folder_name)
 
         # Store details about what we did into the cache
         self.tv._cache.set_cache()
@@ -212,7 +229,7 @@ class LibraryAdder():
         # Return our playlist rule tuple
         return ('title', self.tv.details.get('name'))
 
-    def _add_season(self, season, blacklist=[0]):
+    def _add_season(self, season, blacklist=[0], **kwargs):
         number = season.get('season_number', 0)
         folder = u'Season {}'.format(number)
 
@@ -228,14 +245,14 @@ class LibraryAdder():
 
         # Add our episodes
         for x, episode in enumerate(self.tv.get_episodes(number), 1):
-            self._add_episode(episode, number, folder)
+            self._add_episode(episode, number, folder, **kwargs)
             self._update(x, self.tv.e_total)
 
         # Store a season value of where we got up to
         if self.tv.e_total > 2 and season.get('air_date') and not is_unaired_timestamp(season.get('air_date'), self.hide_nodate):
             self.tv._cache.my_history['latest_season'] = try_int(number)
 
-    def _add_episode(self, episode, season, folder):
+    def _add_episode(self, episode, season, folder, **kwargs):
         number = episode.get('episode_number')
         filename = validify_filename(u'S{:02d}E{:02d} - {}'.format(try_int(season), try_int(number), episode.get('name')))
         self.tv._cache.my_history['episodes'].append(filename)
@@ -257,7 +274,8 @@ class LibraryAdder():
             return
 
         # Add our strm file
-        file = create_file(STRM_EPISODE.format(self.tv.tmdb_id, season, number), filename, self.tv.name, folder, basedir=BASEDIR_TV)
+        folder_name = kwargs.get('folder_name')
+        file = create_file(STRM_EPISODE.format(self.tv.tmdb_id, season, number), filename, self.tv.name, folder, basedir=BASEDIR_TV + folder_name)
         self._log._add('tv', self.tv.tmdb_id, 'added strm file', season=season, episode=number, path=file)
 
 
@@ -276,11 +294,12 @@ class _TVShow():
         self.imdb_id = self.details.get('external_ids', {}).get('imdb_id')
         return self.details
 
-    def get_name(self):
+    def get_name(self, **kwargs):
+        folder_name = kwargs.get('folder_name')
         name = u'{}{}'.format(
             self.details.get('name'),
             u' ({})'.format(self.details['first_air_date'][:4]) if self.details.get('first_air_date') else '')
-        self.name = get_unique_folder(name, self.tmdb_id, BASEDIR_TV)
+        self.name = get_unique_folder(name, self.tmdb_id, BASEDIR_TV + folder_name)
         return self.name
 
     def get_dbid(self, kodi_db=None):
@@ -308,8 +327,9 @@ class _TVShow():
         self.e_total = len(self.episodes)
         return self.episodes
 
-    def make_nfo(self):
-        create_nfo('tv', self.tmdb_id, self.name, basedir=BASEDIR_TV)
+    def make_nfo(self, folder_name):
+        
+        create_nfo('tv', self.tmdb_id, self.name, basedir=BASEDIR_TV + folder_name)
 
     def set_next(self):
         self._cache.create_new_cache(self.details.get('name', ''))

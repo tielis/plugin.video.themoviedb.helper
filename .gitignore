@@ -61,3 +61,7 @@ target/
 .idea/
 
 *.zip
+/.vs/slnx.sqlite
+/.vs/ProjectSettings.json
+/.vs/plugin.video.themoviedb.helper/v16/.suo
+/.vs/VSWorkspaceState.json

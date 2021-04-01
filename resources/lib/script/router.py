@@ -169,6 +169,7 @@ def manage_artwork(ftv_id=None, ftv_type=None, **kwargs):
 
 @get_tmdb_id
 def related_lists(tmdb_id=None, tmdb_type=None, season=None, episode=None, container_update=True, include_play=False, **kwargs):
+    
     if not tmdb_id or not tmdb_type:
         return
     items = get_basedir_details(tmdb_type=tmdb_type, tmdb_id=tmdb_id, season=season, episode=episode, include_play=include_play)

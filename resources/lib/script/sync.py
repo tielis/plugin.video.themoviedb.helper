@@ -171,6 +171,7 @@ class _UserList():
             list_sync[x].get('params', {}).get('user_slug'))
 
     def _addlibrary(self, tmdb_type, tmdb_id, slug=None, confirm=True):
+        
         """ Add item to library
         Pass optional slug tuple (list, user) to check if in monitored lists
         """
@@ -178,7 +179,7 @@ class _UserList():
             return
         if confirm and not xbmcgui.Dialog().yesno(xbmc.getLocalizedString(20444), ADDON.getLocalizedString(32362)):
             return
-        add_to_library(tmdb_type, tmdb_id=tmdb_id)
+        add_to_library(tmdb_type, tmdb_id=tmdb_id, list_slug=slug[0], user_slug=slug[1])
 
     def sync(self):
         """ Entry point """

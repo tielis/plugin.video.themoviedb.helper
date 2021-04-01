@@ -319,6 +319,7 @@ class Container(TMDbLists, BaseDirLists, SearchLists, UserDiscoverLists, TraktLi
         return func['lambda'](getattr(self, func['getattr']), **kwargs)
 
     def get_items(self, **kwargs):
+
         info = kwargs.get('info')
 
         # Check routes that don't require ID lookups first
@@ -348,6 +349,7 @@ class Container(TMDbLists, BaseDirLists, SearchLists, UserDiscoverLists, TraktLi
         return self._get_items(route[info]['route'], **kwargs)
 
     def get_directory(self):
+        
         items = self.get_items(**self.params)
         if not items:
             return
