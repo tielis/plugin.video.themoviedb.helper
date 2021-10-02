@@ -319,7 +319,6 @@ class Container(TMDbLists, BaseDirLists, SearchLists, UserDiscoverLists, TraktLi
         return func['lambda'](getattr(self, func['getattr']), **kwargs)
 
     def get_items(self, **kwargs):
-
         info = kwargs.get('info')
 
         # Check routes that don't require ID lookups first
@@ -344,8 +343,9 @@ class Container(TMDbLists, BaseDirLists, SearchLists, UserDiscoverLists, TraktLi
 
         # Lookup up our TMDb ID
         if not kwargs.get('tmdb_id'):
-            kwargs['tmdb_id'] = self.get_tmdb_id(**kwargs)
-
+            kwargs['tmdb_id'] = self.get_tmdb_id(**kwargs)        
+        if info == 'movie_set':
+            kwargs['collection_id'] = self.tmdb_api.get_request_sc('movie', kwargs.get('tmdb_id'))["belongs_to_collection"]["id"]
         return self._get_items(route[info]['route'], **kwargs)
 
     def get_directory(self):

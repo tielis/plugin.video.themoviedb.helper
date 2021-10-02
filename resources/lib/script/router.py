@@ -29,7 +29,7 @@ from resources.lib.container.listitem import ListItem
 
 
 # Get TMDb ID decorator
-def get_tmdb_id(func):
+def get_tmdb_id(func):    
     def wrapper(*args, **kwargs):
         with busy_dialog():
             if not kwargs.get('tmdb_id'):
@@ -168,11 +168,10 @@ def manage_artwork(ftv_id=None, ftv_type=None, **kwargs):
 
 
 @get_tmdb_id
-def related_lists(tmdb_id=None, tmdb_type=None, season=None, episode=None, container_update=True, include_play=False, **kwargs):
-    
+def related_lists(tmdb_id=None, tmdb_type=None, season=None, episode=None, container_update=True, include_play=False, db_id=None, **kwargs):
     if not tmdb_id or not tmdb_type:
-        return
-    items = get_basedir_details(tmdb_type=tmdb_type, tmdb_id=tmdb_id, season=season, episode=episode, include_play=include_play)
+        return    
+    items = get_basedir_details(tmdb_type=tmdb_type, tmdb_id=tmdb_id, season=season, episode=episode, include_play=include_play, db_id=db_id)
     if not items or len(items) <= 1:
         return
     choice = xbmcgui.Dialog().contextmenu([i.get('label') for i in items])
@@ -332,8 +331,8 @@ def sort_list(**kwargs):
     xbmc.executebuiltin(format_folderpath(encode_url(**kwargs)))
 
 
-class Script(object):
-    def __init__(self):
+class Script(object):    
+    def __init__(self):                
         self.params = {}
         for arg in sys.argv[1:]:
             if '=' in arg:

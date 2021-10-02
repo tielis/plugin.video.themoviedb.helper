@@ -1,7 +1,8 @@
-import xbmc
+import xbmc, sys
 from resources.lib.addon.timedate import get_timedelta, get_datetime_today
 from resources.lib.addon.plugin import PLUGINPATH, ADDONPATH, ADDON, convert_type
 from resources.lib.addon.setutils import merge_two_items
+from resources.lib.kodi.rpc import get_jsonrpc
 from json import dumps
 
 
@@ -17,7 +18,7 @@ def _build_basedir_item(i, t, space):
     return item
 
 
-def _build_basedir(item_type=None, basedir=None):
+def _build_basedir(item_type=None, basedir=None):    
     if not basedir:
         return []
     space = '' if item_type else ' '  # Type not added to label when single type so dont need spaces
@@ -163,6 +164,14 @@ def _get_basedir_details():
             'art': {'thumb': u'{}/resources/icons/tmdb/trakt.png'.format(ADDONPATH)},
             'types': ['null']}]
 
+def _get_basedir_movie_set():
+    return [        
+        {
+            'label': xbmc.getLocalizedString(20457),
+            'params': {'info': 'movie_set'},
+            'path': PLUGINPATH,
+            'art': {'thumb': u'{}/resources/icons/tmdb/movies.png'.format(ADDONPATH)},
+            'types': ['movie']}]
 
 def _get_basedir_random():
     return [
@@ -626,7 +635,7 @@ def _get_basedir_calendar(info=None):
     return items
 
 
-def get_basedir_details(tmdb_type, tmdb_id, season=None, episode=None, detailed_item=None, include_play=False):
+def get_basedir_details(tmdb_type, tmdb_id, season=None, episode=None, detailed_item=None, include_play=False, db_id=None):
     base_item = detailed_item or {}
     base_item.setdefault('params', {})
     base_item.setdefault('infolabels', {})
@@ -636,10 +645,16 @@ def get_basedir_details(tmdb_type, tmdb_id, season=None, episode=None, detailed_
     base_item['params']['info'] = 'details'
 
     basedir_items = []
-    if tmdb_type == 'movie':
+    if tmdb_type == 'movie':        
         base_item['infolabels']['mediatype'] = 'movie'
         basedir_items = _build_basedir('movie', _get_play_item()) if include_play else []
-        basedir_items += _build_basedir('movie', _get_basedir_details())
+        if db_id != None:
+            method = "VideoLibrary.GetMovieDetails"
+            params = {'properties':['set'], "movieid": int(db_id)}
+            resp = get_jsonrpc(method, params)['result']['moviedetails']['set']
+            if resp != '':
+                basedir_items += _build_basedir('movie', _get_basedir_movie_set())
+        basedir_items += _build_basedir('movie', _get_basedir_details())        
     elif tmdb_type == 'tv' and season is not None and episode is not None:
         base_item['params']['season'] = season
         base_item['params']['episode'] = episode

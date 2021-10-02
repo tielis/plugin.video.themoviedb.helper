@@ -5,4 +5,5 @@ from resources.lib.container.router import Container
 
 
 if __name__ == '__main__':
+    #import web_pdb; web_pdb.set_trace()
     Container().router()

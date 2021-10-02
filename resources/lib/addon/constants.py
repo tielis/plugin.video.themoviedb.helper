@@ -178,6 +178,12 @@ TMDB_BASIC_LISTS = {
         'key': 'results',
         'route': TMDB_BASIC_LISTS_ROUTE
     },
+    'movie_set': {
+        'path': 'collection/{collection_id}',
+        'key': 'parts',
+        'dbid_sorting': True,
+        'route': TMDB_BASIC_LISTS_ROUTE
+    },
     'recommendations': {
         'path': '{tmdb_type}/{tmdb_id}/recommendations',
         'key': 'results',
@@ -390,7 +396,7 @@ CONTEXT_MENU_ITEMS = {
     },
     'tmdbhelper.context.related': {
         'episode': {'tmdb_type': 'tv', 'tmdb_id': '{tmdb_id}', 'season': '{season}', 'episode': '{episode}'},
-        'other': {'tmdb_type': '{tmdb_type}', 'tmdb_id': '{tmdb_id}'}
+        'other': {'tmdb_type': '{tmdb_type}', 'tmdb_id': '{tmdb_id}', 'db_id': '{db_id}'}
     },
     'tmdbhelper.context.addlibrary': {
         'movie': {'info': '{tmdb_type}', 'tmdb_id': '{tmdb_id}', 'force': True},

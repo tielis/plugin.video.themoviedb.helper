@@ -7,16 +7,18 @@ class ContextMenu():
     If context params have format key in self.info but it is empty then item isn't built
     Context menu builds only for specified mediatypes (use other for all others)
     """
-
+    #import web_pdb; web_pdb.set_trace()
     def __init__(self, listitem):
+        
         self._li = listitem
         self.info = {
             'ftv_id': self._li.get_ftv_id(),
             'tmdb_id': self._li.get_tmdb_id(),
-            'tmdb_type': self._li.get_tmdb_type(),
+            'tmdb_type': self._li.get_tmdb_type(),            
             'trakt_type': self._li.get_trakt_type(),
             'season': self._li.infolabels.get('season'),
             'episode': self._li.infolabels.get('episode'),
+            'db_id': self._li.infolabels.get('db_id'),
         }
         self.mediatype = self._li.infolabels.get('mediatype')
 
